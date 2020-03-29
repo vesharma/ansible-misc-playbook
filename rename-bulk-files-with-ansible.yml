@@ -22,3 +22,67 @@
         state: absent
       when: '"file-" not in item'
       with_items: "{{ files_to_rename.stdout_lines }}"
+      
+      
+      
+      -----
+      
+      https://www.decodingdevops.com/ansible-copy-multiple-files/
+https://www.decodingdevops.com/ansible-when-condition-examples-with-rc/
+https://symfonycasts.com/screencast/ansible/faster-smarter-playbook
+https://cloudaffaire.com/statements-in-ansible/
+https://osric.com/chris/accidental-developer/2018/03/using-ansible-to-check-version-before-install-or-upgrade/
+https://raymii.org/s/tutorials/Ansible_-_Only_if_a_file_exists_or_does_not_exist.html
+https://github.com/elastic/ansible-elasticsearch/issues/94
+https://dev.to/setevoy/ansible-check-if-a-package-installed-on-a-remote-system-4402  - nginx
+https://intellipaat.com/blog/tutorial/devops-tutorial/ansible-tutorial/
+
+
+---
+  - name: jboss installation
+    hosts: all
+    become: true
+    tasks:
+
+    - name: copy the file from /root/ to /ql
+      copy:
+        src: /root/jboss-eap-7.2.0.zip
+        dest: /ql/
+
+    - name: unzip should be install on server
+      yum:
+        name: unzip
+        state: present
+
+    - name: Create directory
+      file:
+        dest: /ql/EAP-7.2.0
+        state: directory
+        mode: "u=rw,g=wx,o=rwx"
+        recurse: yes
+
+    - name: extract the file
+      unarchive:
+        src: /root/jboss-eap-7.2.0.zip
+        dest: /ql/EAP-7.2.0
+        remote_src: yes
+        #extra_opts: [--strip-components=1]
+
+      #- name: Plan of action
+      # copy the host.xml host.xml_date
+      # copy domain.xml domain.xml_date
+      # add interface line in host.xml
+      # run adduser.sh
+      # add domain controller line for remote user
+      # replace public and private interface
+      # add server group
+      # add server in it
+
+    - name: Copy the host and domain.xml file
+      copy:
+         src: "{{ item.src }}"
+         dest: "{{ item.dest }}"
+      with_items:
+       - { src: '/ql/EAP-7.2.0/jboss-eap-7.2/domain/configuration/host.xml', dest: '/ql/EAP-7.2.0/jboss-eap-7.2/domain/configuration/host.xml_org_bak' }
+       - { src: '/ql/EAP-7.2.0/jboss-eap-7.2/domain/configuration/domain.xml' , dest: '/ql/EAP-7.2.0/jboss-eap-7.2/domain/configuration/domain.xml_org_bak' }
+
