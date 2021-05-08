@@ -1,0 +1,113 @@
+---
+  - hosts: localhost
+    become: true
+
+   #Plan:
+     # Download latest package
+     # Copy Setup from jumpserver to tmp location
+     # install zip through yum
+     # extract file in /opt/appdynamics
+     # replace Controller.xml
+
+
+    vars:
+       Setuplocation: "/root/AppdSetup"
+       javaagent: "AppServerAgent-1.8-21.4.0.32403.zip"
+       machineagent: "machineagent-bundle-64bit-linux-21.4.0.3075.zip"
+       netvizagent: 
+       
+       destvar: "/tmp/appdynamics"
+       Deploymentlocation: "/opt/appdynamics"
+       modevar: "775"
+   
+    tasks:
+    
+    - name: Test ping
+      ping: 
+   
+    - name: 1. copy javaagent in location
+      copy: 
+         src:  "{{ Setuplocation }}/{{ item }}"
+         dest:  "{{ destvar }}"
+         mode: 775
+         remote_src: yes
+         force: yes
+         fail_on_missing: yes
+      register: outputcopy
+      failed_when: false
+      with_items:
+         - "{{ javaagent }}"
+         - "{{ machineagent }}"
+    
+    - debug:
+        msg: " {{ Setuplocation }}/{{ javaagent }}"
+
+
+    - name: installing zip with yum
+      yum:
+         name: unzip
+         state: latest
+      register: yumoutput   
+      changed_when: yumoutput.rc != 0  
+
+
+    - name:  Create directories
+      file:
+         path: "{{ item }}"
+         state: directory
+         mode: 775
+         recurse: yes
+      with_items:
+         - /opt/appdynamics/java-agent
+         - /opt/appdynamics/machine-agent
+ 
+
+    - name: extract setup in /opt/appdynamics
+      unarchive: 
+         src: "{{ item.src }}"
+         dest: "{{ item.dest }}"
+      with_items:
+       - { src: '/tmp/appdynamics/AppServerAgent-1.8-21.4.0.32403.zip' ,dest: '/opt/appdynamics/java-agent', mode: '775' }
+     
+    - name: For taking backup
+      copy:
+         src: "{{ item }}"
+         dest: "{{ item }}_{{ansible_date_time.date}}_{{ansible_date_time.time}}"
+         backup: true
+      with_items:
+         - "/opt/appdynamics/java-agent/conf/controller-info.xml"
+         - "/opt/appdynamics/java-agent/ver21.4.0.32403/conf/controller-info.xml"
+
+    - name: For replacing /opt/appdynamics/java-agent/conf/controller-info.xml values
+      replace:
+         path: "/opt/appdynamics/java-agent/conf/controller-info.xml"
+         regexp: "{{ item.regexp }}"
+         replace: "{{ item.replace }}"
+      with_items:   
+         - { regexp: "<controller-host></controller-host>" , replace: "<controller-host>elapbctl.onefiserv.net</controller-host>" }
+         - { regexp: "<controller-port></controller-port>" , replace: "<controller-port>443</controller-port>" }
+         - { regexp: "<controller-ssl-enabled></controller-ssl-enabled>" , replace: "<controller-ssl-enabled>true</controller-ssl-enabled>" }
+         - { regexp: "<application-name></application-name>" , replace: "<application-name>Rulemanager-dit1</application-name>" }
+         - { regexp: "<tier-name></tier-name>" , replace: "<tier-name>dit1</tier-name>" }
+         - { regexp: "<node-name></node-name>" , replace: "<node-name>node1</node-name>" }
+         - { regexp: "<account-name></account-name>" , replace: "<account-name>customer1</account-name>" }
+         - { regexp: "<account-access-key></account-access-key>" , replace: "<account-access-key>a1ssfsf12-23-232-45244-12fs</account-access-key>" }
+
+    - name: For replacing /opt/appdynamics/java-agent/ver21.4.0.32403/conf/controller-info.xml values
+      replace:
+         path: "/opt/appdynamics/java-agent/ver21.4.0.32403/conf/controller-info.xml"
+         regexp: "{{ item.regexp }}"
+         replace: "{{ item.replace }}"
+      with_items:
+         - { regexp: "<controller-host></controller-host>" , replace: "<controller-host>elapbctl.onefiserv.net</controller-host>" }
+         - { regexp: "<controller-port></controller-port>" , replace: "<controller-port>443</controller-port>" }
+         - { regexp: "<controller-ssl-enabled></controller-ssl-enabled>" , replace: "<controller-ssl-enabled>true</controller-ssl-enabled>" }
+         - { regexp: "<application-name></application-name>" , replace: "<application-name>Rulemanager-dit1</application-name>" }
+         - { regexp: "<tier-name></tier-name>" , replace: "<tier-name>dit1</tier-name>" }
+         - { regexp: "<node-name></node-name>" , replace: "<node-name>node1</node-name>" }
+         - { regexp: "<account-name></account-name>" , replace: "<account-name>customer1</account-name>" }
+         - { regexp: "<account-access-key></account-access-key>" , replace: "<account-access-key>a1ssfsf12-23-232-45244-12fs</account-access-key>" }
+
+
+    - Leaving to configure startup file
+
